@@ -7,6 +7,7 @@ folder, and a final 'burn it all' reset.
 from __future__ import annotations
 
 import io
+import os
 import platform
 import sys
 
@@ -42,6 +43,7 @@ def index():
         settings=_settings_rows(),
         dropdowns=_DROPDOWNS,
         palette_warnings=palette.warnings(db.get_settings(), db.get_setting("theme", "dark")),
+        backups=backup.list_backups(),
         saved=request.args.get("saved"),
     )
 
@@ -116,8 +118,26 @@ def backup_now():
 
 @bp.route("/restore", methods=["POST"])
 def restore():
-    backup.restore_latest()
-    return redirect(url_for("config.index", saved="restore"))
+    name = (request.form.get("backup") or "").strip()
+    ok = backup.restore_named(name) if name else backup.restore_latest()
+    return redirect(url_for("config.index", saved="restore" if ok else "restore-fail"))
+
+
+@bp.route("/restore-file", methods=["POST"])
+def restore_from_file():
+    """Restore from a database file in another location (e.g. an offsite copy)."""
+    file = request.files.get("backup_file")
+    if not file or not file.filename:
+        return redirect(url_for("config.index", saved="restore-fail"))
+    import tempfile
+    tmp = os.path.join(tempfile.gettempdir(), "gsd_restore_upload.db")
+    file.save(tmp)
+    ok = backup.restore_file(tmp)
+    try:
+        os.remove(tmp)
+    except OSError:
+        pass
+    return redirect(url_for("config.index", saved="restore" if ok else "restore-bad"))
 
 
 @bp.route("/export", methods=["POST"])

@@ -39,6 +39,8 @@ def index():
     except ValueError:
         page = 1
 
+    aged, outstanding_total = _aged_debtors(conn)
+
     total = conn.execute("SELECT COUNT(*) n FROM invoices WHERE status='Unpaid'").fetchone()["n"]
     pages = max(1, -(-total // per_page))
     page = min(page, pages)
@@ -61,7 +63,41 @@ def index():
         "outstanding.html", invoices=invoices, sort=sort, dir=direction,
         page=page, pages=pages, per_page=per_page, page_sizes=PAGE_SIZES,
         total=total, start=(offset + 1 if total else 0), end=min(offset + per_page, total),
+        aged=aged, outstanding_total=outstanding_total,
     )
+
+
+def _aged_debtors(conn):
+    """Bucket unpaid invoices by age, returning (buckets, formatted total)."""
+    today = date.today()
+    buckets = [
+        {"label": "0–7 days",   "lo": 0,  "hi": 7,    "warm": False},
+        {"label": "7–31 days",  "lo": 8,  "hi": 31,   "warm": False},
+        {"label": "2 months",        "lo": 32, "hi": 61,   "warm": True},
+        {"label": "3 months +",      "lo": 62, "hi": None, "warm": True},
+    ]
+    for b in buckets:
+        b["count"] = 0
+        b["value"] = 0.0
+    grand = 0.0
+    rows = conn.execute(
+        "SELECT invoice_date, amount_payable FROM invoices WHERE status = 'Unpaid'"
+    ).fetchall()
+    for r in rows:
+        amt = r["amount_payable"] or 0
+        grand += amt
+        try:
+            age = (today - date.fromisoformat((r["invoice_date"] or "")[:10])).days
+        except ValueError:
+            age = 0
+        for b in buckets:
+            if (b["hi"] is None and age >= b["lo"]) or (b["hi"] is not None and b["lo"] <= age <= b["hi"]):
+                b["count"] += 1
+                b["value"] += amt
+                break
+    for b in buckets:
+        b["value_str"] = money.money(b["value"])
+    return buckets, money.money(grand)
 
 
 @bp.route("/<int:number>/paid", methods=["POST"])

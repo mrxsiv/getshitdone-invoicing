@@ -120,6 +120,28 @@ h2 { font-size: 17px; margin: 0 0 12px; }
 }
 .stat-num { font-size: 30px; font-weight: 700; color: var(--brand-dk); }
 .stat-label { color: var(--muted); margin-top: 4px; }
+a.stat-link { text-decoration: none; color: inherit; transition: border-color .12s; }
+a.stat-link:hover { border-color: var(--brand); }
+
+/* ---- Aged debtors (Outstanding) ---- */
+.aged { display: flex; gap: 16px; align-items: stretch; margin-bottom: 20px; flex-wrap: wrap; }
+.aged-buckets { display: flex; gap: 12px; flex: 1; flex-wrap: wrap; }
+.aged-bucket {
+  flex: 1; min-width: 120px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px;
+}
+.aged-bucket .aged-label { color: var(--muted); font-size: 13px; }
+.aged-bucket .aged-amt { font-size: 20px; font-weight: 700; margin-top: 4px; }
+.aged-bucket .aged-count { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.aged-bucket.warm { border-color: var(--warn); }
+.aged-bucket.warm .aged-amt { color: var(--warn); }
+.aged-total {
+  min-width: 200px; background: var(--brand); color: var(--on-brand);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 20px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.aged-total .aged-total-label { font-size: 13px; opacity: .9; }
+.aged-total .aged-total-amt { font-size: 28px; font-weight: 800; margin-top: 4px; }
 
 /* ---- Tables ---- */
 .table { width: 100%; border-collapse: collapse; }

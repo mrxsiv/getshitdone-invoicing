@@ -9,7 +9,17 @@
 </div>
 
 <div class="notice notice-warn">&#9888; Technical area. Changes here affect the whole system. If you're not sure what you're doing, please go back to Settings.</div>
-{% if saved %}<div class="notice notice-ok">OK: {{ saved }}</div>{% endif %}
+{% if saved %}
+  {% set fail = saved in ['restore-fail', 'restore-bad', 'logo-bad', 'logo-none'] %}
+  {% set msgs = {
+    'settings':'Settings saved.', 'backup':'Backup taken.', 'restore':'Backup restored.',
+    'restore-fail':'Could not restore that backup.', 'restore-bad':'That file is not a valid database.',
+    'export':'Exported to Excel.', 'moved':'Data folder moved.', 'logo-ok':'Logo updated.',
+    'logo-bad':'That image could not be used (check type, size and shape).',
+    'logo-none':'No file was selected.', 'burned':'Everything was reset to sample values.'
+  } %}
+  <div class="notice {{ 'notice-error' if fail else 'notice-ok' }}">{{ msgs.get(saved, saved) }}</div>
+{% endif %}
 
 <div class="backend">
 
@@ -65,10 +75,37 @@
     <h2>data &amp; backups</h2>
     <div class="be-buttons">
       <form method="post" action="{{ url_for('config.backup_now') }}"><button class="btn" type="submit">backup now</button></form>
-      <form method="post" action="{{ url_for('config.restore') }}" onsubmit="return confirm('Restore the latest backup? Current data will be overwritten.');"><button class="btn" type="submit">restore latest backup</button></form>
       <form method="post" action="{{ url_for('config.export_excel') }}"><button class="btn" type="submit">export to Excel</button></form>
       <a class="btn" href="{{ url_for('config.import_historical') }}">import historical data&hellip;</a>
     </div>
+
+    <table class="kv" style="margin-top:14px;">
+      <tr>
+        <td class="k">restore a backup</td>
+        <td class="v">
+          <form method="post" action="{{ url_for('config.restore') }}" style="display:flex;gap:8px;flex-wrap:wrap;"
+                onsubmit="return confirm('Restore this backup? The current data will be overwritten (a safety backup is taken first).');">
+            <select name="backup">
+              {% for b in backups %}<option value="{{ b.name }}">{{ b.label }} ({{ b.size_kb }} KB)</option>{% endfor %}
+              {% if not backups %}<option value="">(no backups yet)</option>{% endif %}
+            </select>
+            <button class="btn" type="submit" {{ 'disabled' if not backups }}>restore selected</button>
+          </form>
+        </td>
+      </tr>
+      <tr>
+        <td class="k">restore from another location</td>
+        <td class="v">
+          <form method="post" action="{{ url_for('config.restore_from_file') }}" enctype="multipart/form-data"
+                style="display:flex;gap:8px;flex-wrap:wrap;"
+                onsubmit="return confirm('Restore from this file? The current data will be overwritten (a safety backup is taken first).');">
+            <input type="file" name="backup_file" accept=".db">
+            <button class="btn" type="submit">restore from file</button>
+          </form>
+          <div class="hint">Pick a database file from an offsite/cloud copy (e.g. for disaster recovery).</div>
+        </td>
+      </tr>
+    </table>
     <form method="post" action="{{ url_for('config.change_data_folder') }}" style="margin-top:14px;"
           onsubmit="return confirm('Move the data folder? Files will be copied to the new location.');">
       <table class="kv"><tr><td class="k">data_folder</td>

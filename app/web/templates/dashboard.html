@@ -9,14 +9,14 @@
 </div>
 
 <div class="stats">
-  <div class="stat">
+  <a class="stat stat-link" href="{{ url_for('outstanding.index') }}" title="View outstanding invoices">
     <div class="stat-num">{{ unpaid_count }}</div>
-    <div class="stat-label">Unpaid invoices</div>
-  </div>
-  <div class="stat">
+    <div class="stat-label">Unpaid invoices &rsaquo;</div>
+  </a>
+  <a class="stat stat-link" href="{{ url_for('outstanding.index') }}" title="View outstanding invoices">
     <div class="stat-num">{{ unpaid_total }}</div>
-    <div class="stat-label">Total outstanding</div>
-  </div>
+    <div class="stat-label">Total outstanding &rsaquo;</div>
+  </a>
 </div>
 
 {# ---- Period summary (req 5) ---- #}

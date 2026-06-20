@@ -6,6 +6,24 @@
 
 <div class="page-head"><h1>Outstanding</h1></div>
 
+{% if total %}
+<div class="aged">
+  <div class="aged-buckets">
+    {% for b in aged %}
+    <div class="aged-bucket {{ 'warm' if b.warm and b.count }}">
+      <div class="aged-label">{{ b.label }}</div>
+      <div class="aged-amt">{{ b.value_str }}</div>
+      <div class="aged-count">{{ b.count }} invoice{{ '' if b.count == 1 else 's' }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="aged-total">
+    <div class="aged-total-label">Total outstanding</div>
+    <div class="aged-total-amt">{{ outstanding_total }}</div>
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   {% if invoices %}
   <table class="table rows" id="outstandingTable">
