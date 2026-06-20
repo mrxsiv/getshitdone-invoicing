@@ -7,7 +7,7 @@ update automatically reports the new version.
 """
 from __future__ import annotations
 
-VERSION = "1.01"
+VERSION = "1.02"
 PUBLICATION_DATE = "20 Jun 2026"
 
 # GitHub repo to check for updates (owner/name). Overridable in Backend Config.

@@ -3,7 +3,7 @@
 ; (packaging\build.ps1 runs PyInstaller + bundles Chromium + this script.)
 
 #define AppName "GET SHIT DONE"
-#define AppVersion "1.01"
+#define AppVersion "1.02"
 #define AppPublisher "Paul Manson"
 #define AppExe "GETSHITDONE.exe"
 
@@ -15,6 +15,9 @@ AppPublisher={#AppPublisher}
 DefaultDirName={sd}\GSD
 DisableProgramGroupPage=yes
 DisableDirPage=no
+UsePreviousAppDir=yes
+CloseApplications=yes
+RestartApplications=no
 OutputDir=Output
 OutputBaseFilename=GETSHITDONE-Setup-{#AppVersion}
 SetupIconFile=GSD.ico
@@ -45,9 +48,20 @@ Filename: "{app}\{#AppExe}"; Description: "Launch {#AppName} now"; Flags: nowait
 [Code]
 var
   DataDirPage: TInputDirWizardPage;
+  IsUpgrade: Boolean;
+
+function PrevInstalled(): Boolean;
+var
+  s: String;
+begin
+  Result :=
+    RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{A7E3F2C1-9B4D-4E6A-8C2F-1A2B3C4D5E6F}_is1', 'UninstallString', s) or
+    RegQueryStringValue(HKCU, 'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{A7E3F2C1-9B4D-4E6A-8C2F-1A2B3C4D5E6F}_is1', 'UninstallString', s);
+end;
 
 procedure InitializeWizard;
 begin
+  IsUpgrade := PrevInstalled();
   DataDirPage := CreateInputDirPage(wpSelectDir,
     'Select data location',
     'Where should your invoices and database be stored?',
@@ -58,15 +72,30 @@ begin
   DataDirPage.Values[0] := ExpandConstant('{sd}\GSD\data');
 end;
 
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  // On an upgrade, reuse the existing install folder, data location and
+  // shortcuts. Don't re-prompt — re-choosing the data folder could point the
+  // app at the wrong place and "lose" the user's data.
+  if IsUpgrade then
+    if (PageID = wpSelectDir) or (PageID = wpSelectTasks) or (PageID = DataDirPage.ID) then
+      Result := True;
+end;
+
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   dataDir: String;
 begin
   if CurStep = ssPostInstall then
   begin
-    dataDir := DataDirPage.Values[0];
-    ForceDirectories(dataDir);
-    // The app reads this file (next to the .exe) to find the data folder.
-    SaveStringToFile(ExpandConstant('{app}\data_location.txt'), dataDir, False);
+    if not IsUpgrade then
+    begin
+      // Fresh install only: record the chosen data folder for the app to read.
+      dataDir := DataDirPage.Values[0];
+      ForceDirectories(dataDir);
+      SaveStringToFile(ExpandConstant('{app}\data_location.txt'), dataDir, False);
+    end;
+    // Upgrade: leave the existing {app}\data_location.txt untouched.
   end;
 end;

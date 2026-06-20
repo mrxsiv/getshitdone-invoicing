@@ -65,6 +65,10 @@
     <button class="btn" id="btnCheckUpdates" type="button">Check for updates</button>
     <span id="updateStatus" class="update-status">Current version {{ app_version }} ({{ publication_date }})</span>
   </div>
+  <div id="updateProgress" class="update-progress" hidden>
+    <div class="bar"><div id="updateBar" class="bar-fill"></div></div>
+    <div id="updateProgressText" class="hint"></div>
+  </div>
   <p class="hint" style="margin-top:14px;">Backups, data location, import and technical options live here.</p>
   <a class="btn btn-quiet" href="{{ url_for('config.index') }}"
      onclick="return confirm('Please don\'t go in here unless you spoke with Paul.');">Backend Config</a>
@@ -101,13 +105,51 @@
       .catch(function () { status.textContent = "Could not check for updates."; });
   }
 
+  var progress = document.getElementById("updateProgress");
+  var bar = document.getElementById("updateBar");
+  var progressText = document.getElementById("updateProgressText");
+
+  function poll() {
+    fetch("{{ url_for('settings.updates_progress') }}")
+      .then(function (r) { return r.json(); })
+      .then(function (s) {
+        if (s.status === "downloading") {
+          bar.style.width = (s.pct || 0) + "%";
+          progressText.textContent = "Downloading… " + (s.pct || 0) + "%  (" +
+            s.downloaded_mb + " / " + (s.total_mb || "?") + " MB)";
+          setTimeout(poll, 700);
+        } else if (s.status === "launching") {
+          bar.style.width = "100%";
+          progressText.textContent = "Download complete. Opening the installer — " +
+            "click YES on the Windows security prompt. The app will close while it " +
+            "updates, then you can reopen it.";
+        } else if (s.status === "error") {
+          progressText.textContent = s.error || "The update could not be downloaded.";
+        } else {
+          setTimeout(poll, 700);
+        }
+      })
+      .catch(function () {
+        // The app exits once the installer launches, so a failed poll here is
+        // expected at the end — show the final message rather than an error.
+        progressText.textContent = "The installer is now running. Approve the " +
+          "Windows prompt, then reopen the app once it finishes.";
+      });
+  }
+
   btn.addEventListener("click", function () {
     if (pending && pending.status === "update") {
-      if (!confirm("Download and install " + pending.latest + " now?")) return;
-      status.textContent = "Downloading update…";
+      if (!confirm("Update to " + pending.latest + " now?\n\n" +
+                   "The installer (about 200 MB) will download, then Windows will " +
+                   "ask permission to run it — click Yes. The app closes while it " +
+                   "updates and can be reopened afterwards. Your data is not touched.")) return;
+      btn.disabled = true;
+      status.textContent = "Updating…";
+      progress.hidden = false;
+      bar.style.width = "0%";
+      progressText.textContent = "Starting download…";
       fetch("{{ url_for('settings.updates_apply') }}", { method: "POST" })
-        .then(function (r) { return r.json(); })
-        .then(function (res) { status.textContent = res.message || ""; });
+        .then(function () { poll(); });
     } else {
       check();
     }

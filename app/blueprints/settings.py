@@ -35,4 +35,9 @@ def updates_check():
 
 @bp.route("/updates/apply", methods=["POST"])
 def updates_apply():
-    return jsonify(updater.apply())
+    return jsonify(updater.start_download())
+
+
+@bp.route("/updates/progress")
+def updates_progress():
+    return jsonify(updater.download_state())

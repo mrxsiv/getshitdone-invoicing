@@ -12,6 +12,8 @@ import os
 import re
 import subprocess
 import tempfile
+import threading
+import time
 import urllib.request
 
 from . import db, version
@@ -61,22 +63,59 @@ def check(timeout: float = 6.0) -> dict:
             "message": f"You're on the latest version ({current})."}
 
 
-def apply() -> dict:
-    """Download the latest installer and launch it. Returns a status dict."""
-    info = check()
-    if info.get("status") != "update":
-        return info
-    asset = info.get("asset")
-    if not asset:
-        return {"status": "manual", "url": info.get("url"),
-                "message": "An update exists but no installer was attached. "
-                           "Please download it from the releases page."}
+# ---- Background download with progress (so the UI can show a bar) ----
+
+_dl = {"status": "idle", "downloaded": 0, "total": 0, "error": None}
+_dl_lock = threading.Lock()
+
+
+def download_state() -> dict:
+    with _dl_lock:
+        s = dict(_dl)
+    s["pct"] = int(s["downloaded"] * 100 / s["total"]) if s["total"] else 0
+    s["downloaded_mb"] = round(s["downloaded"] / 1048576, 1)
+    s["total_mb"] = round(s["total"] / 1048576, 1)
+    return s
+
+
+def start_download() -> dict:
+    """Begin downloading the latest installer in the background (non-blocking)."""
+    with _dl_lock:
+        if _dl["status"] in ("downloading", "launching"):
+            return {"status": _dl["status"]}
+        _dl.update(status="downloading", downloaded=0, total=0, error=None)
+    threading.Thread(target=_download_worker, daemon=True).start()
+    return {"status": "downloading"}
+
+
+def _download_worker() -> None:
     try:
+        info = check()
+        if info.get("status") != "update" or not info.get("asset"):
+            with _dl_lock:
+                _dl.update(status="error", error="No update is available to download.")
+            return
         dest = os.path.join(tempfile.gettempdir(), "GSD_update_setup.exe")
-        urllib.request.urlretrieve(asset, dest)
-        subprocess.Popen([dest])  # the installer updates the app in place
-        return {"status": "updating",
-                "message": "The updater is starting in a new window. Follow its "
-                           "prompts, then reopen the app."}
+        req = urllib.request.Request(info["asset"], headers={"User-Agent": "GSD-Updater"})
+        with urllib.request.urlopen(req, timeout=30) as resp, open(dest, "wb") as f:
+            total = int(resp.headers.get("Content-Length") or 0)
+            with _dl_lock:
+                _dl["total"] = total
+            done = 0
+            while True:
+                chunk = resp.read(262144)
+                if not chunk:
+                    break
+                f.write(chunk)
+                done += len(chunk)
+                with _dl_lock:
+                    _dl["downloaded"] = done
+        with _dl_lock:
+            _dl.update(status="launching")
+        subprocess.Popen([dest])              # installer runs (UAC will prompt)
+        # Give the browser a moment to show the "installer opening" message, then
+        # quit so the running .exe doesn't lock the files the installer replaces.
+        threading.Timer(4.0, lambda: os._exit(0)).start()
     except Exception:
-        return {"status": "error", "message": "The update could not be downloaded."}
+        with _dl_lock:
+            _dl.update(status="error", error="The update could not be downloaded.")
