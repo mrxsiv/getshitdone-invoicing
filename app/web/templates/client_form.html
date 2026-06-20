@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "_macros.html" import sorthead, pager %}
+{% set active = 'clients' %}
+{% block title %}{{ 'Edit client' if client else 'Add client' }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>{{ 'Edit client' if client else 'Add client' }}</h1>
+  <a class="btn btn-quiet" href="{{ url_for('clients.index') }}">&larr; Back to clients</a>
+</div>
+
+{% if error %}<div class="notice notice-error">{{ error }}</div>{% endif %}
+
+<div class="card narrow">
+  <form method="post"
+        action="{{ url_for('clients.edit', client_id=client.client_id) if client else url_for('clients.new') }}">
+    <label>Name
+      <input name="name" value="{{ client.name if client else '' }}" required autofocus>
+    </label>
+    <label>Address
+      <textarea name="address" rows="3">{{ client.address if client else '' }}</textarea>
+    </label>
+    <div class="two-col">
+      <label>Phone
+        <input name="phone" value="{{ client.phone if client else '' }}">
+      </label>
+      <label>Email
+        <input name="email" type="email" value="{{ client.email if client else '' }}">
+      </label>
+    </div>
+    <label>Customer code <span class="hint">(optional &ndash; created automatically if left blank)</span>
+      <input name="customer_code" value="{{ client.customer_code if client else '' }}">
+    </label>
+    <label>Notes
+      <textarea name="notes" rows="2">{{ client.notes if client else '' }}</textarea>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save client</button>
+    </div>
+  </form>
+</div>
+
+{% if client %}
+<div class="card narrow">
+  <h2>Past invoices</h2>
+  {% if invoices %}
+  {% set ex = {'client_id': client.client_id, 'per_page': per_page} %}
+  <table class="table rows">
+    <thead><tr>
+      {{ sorthead('clients.edit', 'date', 'Date', sort, dir, extra=ex) }}
+      {{ sorthead('clients.edit', 'number', 'Invoice', sort, dir, extra=ex) }}
+      {{ sorthead('clients.edit', 'reference', 'Reference', sort, dir, extra=ex) }}
+      {{ sorthead('clients.edit', 'amount', 'Amount', sort, dir, 'num', extra=ex) }}
+      {{ sorthead('clients.edit', 'status', 'Status', sort, dir, extra=ex) }}
+    </tr></thead>
+    <tbody>
+      {% for i in invoices %}
+      <tr onclick="window.location='{{ url_for('invoices.edit', number=i.invoice_number) }}'">
+        <td>{{ i.date }}</td><td>{{ i.invoice_number }}</td><td>{{ i.reference }}</td>
+        <td class="num">{{ i.amount }}</td>
+        <td><span class="tag {{ 'tag-paid' if i.status == 'Paid' else 'tag-unpaid' }}">{{ i.status }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {{ pager('clients.edit', page, pages, per_page, page_sizes, total, start, end,
+           extra={'client_id': client.client_id, 'sort': sort, 'dir': dir}) }}
+  {% else %}
+  <div class="empty">No invoices for this client yet.</div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('clients.delete', client_id=client.client_id) }}"
+        onsubmit="return confirm('Delete this client? This cannot be undone. Their past invoices are kept.');"
+        class="danger-zone">
+    <button class="btn btn-danger" type="submit">Delete this client</button>
+  </form>
+</div>
+{% endif %}
+
+{% endblock %}

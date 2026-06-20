@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% set active = 'settings' %}
+{% block title %}Import historical data{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Import historical data</h1>
+  <a class="btn btn-quiet" href="{{ url_for('settings.index') }}">&larr; Back to settings</a>
+</div>
+
+{% if report is none %}
+  {# Intro / confirmation screen #}
+  {% if already %}
+    <div class="notice notice-ok">Historical data has already been imported. There is nothing more to do.</div>
+  {% else %}
+    <div class="card narrow">
+      <p class="lead">This brings in your old clients and invoices from the previous system.</p>
+      <ul>
+        <li>About 214 clients and 1,300 historical invoices will be added.</li>
+        <li>The original invoice PDFs are copied into your Invoices folder.</li>
+        <li>Your new invoices still start at 2001 &mdash; this won't change that.</li>
+        <li>It runs once. A backup is taken first.</li>
+      </ul>
+      <form method="post" action="{{ url_for('config.import_historical') }}">
+        <button class="btn btn-primary btn-big" type="submit">Import now</button>
+      </form>
+      <p class="hint">This can take a minute while the PDF files are copied. Please wait for it to finish.</p>
+    </div>
+  {% endif %}
+
+{% else %}
+  {# Result / reconciliation report #}
+  {% if report.status == 'ok' %}
+    <div class="notice notice-ok">Import complete and everything reconciles.</div>
+  {% elif report.status == 'already' %}
+    <div class="notice notice-ok">{{ report.message }}</div>
+  {% elif report.status == 'error' %}
+    <div class="notice notice-error">{{ report.message }}</div>
+  {% else %}
+    <div class="notice notice-error">Import finished, but the figures did not fully reconcile. Please review below before relying on the data.</div>
+  {% endif %}
+
+  {% if report.status in ['ok', 'mismatch'] %}
+  <div class="card narrow">
+    <h2>Reconciliation</h2>
+    <table class="table">
+      <tr><th>Clients added</th><td>{{ report.clients_added }} of {{ report.source_customer_rows }} in source</td></tr>
+      <tr><th>Invoices imported</th><td>{{ report.invoices_added }} of {{ report.source_invoice_rows }} in source
+        {% if report.counts_ok %}<span class="tag tag-paid">matches</span>{% else %}<span class="tag tag-warn">check</span>{% endif %}</td></tr>
+      <tr><th>Source total</th><td>{{ report.source_amount_total }}</td></tr>
+      <tr><th>Imported total</th><td>{{ report.imported_amount_total }}
+        {% if report.amount_ok %}<span class="tag tag-paid">matches</span>{% else %}<span class="tag tag-warn">check</span>{% endif %}</td></tr>
+      <tr><th>Invoices with a PDF</th><td>{{ report.pdf_linked }}</td></tr>
+      <tr><th>PDF files copied in</th><td>{{ report.pdfs_copied }}</td></tr>
+      <tr><th>Invoices with no matching client</th><td>{{ report.unmatched_client }}</td></tr>
+    </table>
+    <div class="form-actions">
+      <a class="btn" href="{{ url_for('invoices.index') }}">View invoices</a>
+      <a class="btn" href="{{ url_for('clients.index') }}">View clients</a>
+    </div>
+  </div>
+  {% endif %}
+{% endif %}
+
+{% endblock %}

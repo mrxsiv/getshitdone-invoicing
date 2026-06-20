@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% set active = 'settings' %}
+{% block title %}Backend Config{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>// BACKEND CONFIG</h1>
+  <a class="btn btn-quiet" href="{{ url_for('settings.index') }}">&larr; Back to settings</a>
+</div>
+
+<div class="notice notice-warn">&#9888; Technical area. Changes here affect the whole system. If you're not sure what you're doing, please go back to Settings.</div>
+{% if saved %}<div class="notice notice-ok">OK: {{ saved }}</div>{% endif %}
+
+<div class="backend">
+
+  <section class="be-section">
+    <h2>diagnostics</h2>
+    <table class="kv">
+      {% for k, v in diag.items() %}
+      <tr><td class="k">{{ k }}</td><td class="v">{{ v }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <section class="be-section">
+    <h2>settings (raw)</h2>
+    <form method="post" action="{{ url_for('config.save_settings') }}">
+      <table class="kv">
+        {% for s in settings %}
+        <tr>
+          <td class="k">{{ s.key }}</td>
+          <td class="v">
+            {% if s.kind == 'color' %}
+              <input type="color" value="{{ s.value }}" oninput="this.nextElementSibling.value=this.value">
+              <input type="text" class="hex" name="s_{{ s.key }}" value="{{ s.value }}"
+                     oninput="this.previousElementSibling.value=this.value">
+            {% elif s.kind == 'select' %}
+              <select name="s_{{ s.key }}">
+                {% for o in s.options %}<option {{ 'selected' if o == s.value }}>{{ o }}</option>{% endfor %}
+              </select>
+            {% else %}
+              <input type="text" name="s_{{ s.key }}" value="{{ s.value }}">
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+      <button class="btn" type="submit">save settings</button>
+    </form>
+    {% if palette_warnings %}
+    <div class="notice notice-warn">{% for w in palette_warnings %}{{ w }}<br>{% endfor %}</div>
+    {% endif %}
+  </section>
+
+  <section class="be-section">
+    <h2>logo</h2>
+    <form method="post" action="{{ url_for('config.upload_logo') }}" enctype="multipart/form-data">
+      <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp">
+      <button class="btn" type="submit">upload + validate logo</button>
+    </form>
+    <p class="hint">Validates type, size (&le;5MB) and shape before saving a copy into the data folder.</p>
+  </section>
+
+  <section class="be-section">
+    <h2>data &amp; backups</h2>
+    <div class="be-buttons">
+      <form method="post" action="{{ url_for('config.backup_now') }}"><button class="btn" type="submit">backup now</button></form>
+      <form method="post" action="{{ url_for('config.restore') }}" onsubmit="return confirm('Restore the latest backup? Current data will be overwritten.');"><button class="btn" type="submit">restore latest backup</button></form>
+      <form method="post" action="{{ url_for('config.export_excel') }}"><button class="btn" type="submit">export to Excel</button></form>
+      <a class="btn" href="{{ url_for('config.import_historical') }}">import historical data&hellip;</a>
+    </div>
+    <form method="post" action="{{ url_for('config.change_data_folder') }}" style="margin-top:14px;"
+          onsubmit="return confirm('Move the data folder? Files will be copied to the new location.');">
+      <table class="kv"><tr><td class="k">data_folder</td>
+        <td class="v"><input type="text" name="data_folder" value="{{ diag['Data folder'] }}"></td></tr></table>
+      <button class="btn" type="submit">move data folder</button>
+    </form>
+  </section>
+
+  <section class="be-section be-danger">
+    <h2>danger</h2>
+    <p>Deletes <strong>all</strong> clients and invoices and resets business / bank / preferences to sample (garbage) values. A backup is taken first, but do not do this lightly.</p>
+    <form method="post" action="{{ url_for('config.burn_it_all') }}"
+          onsubmit="return confirm('Are you sure? \'cause it\'s fucking final.');">
+      <button class="btn btn-danger" type="submit">BURN IT ALL TO THE GROUND</button>
+    </form>
+  </section>
+
+</div>
+{% endblock %}

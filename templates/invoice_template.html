@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<!--
+  GET SHIT DONE - invoice template.
+
+  HOW THIS WORKS (plain English):
+  - The app fills in anything inside double braces, e.g. {{ClientName}}, before printing.
+  - You can safely change colours, fonts, spacing, wording and the logo here.
+  - To repeat a line-item row, the app copies everything between the two
+    comment markers that say LINE_ITEM_ROW. Leave those markers in place.
+  - The app never overwrites this file when it updates, so your edits are safe.
+
+  Markers available:
+    Business : {{BusinessName}} {{OwnerName}} {{BusinessAddress}} {{BusinessPhone}}
+               {{BusinessEmail}} {{GSTNumber}} {{BankName}} {{BankAccountName}}
+               {{BankAccountNumber}} {{Logo}}
+    Invoice  : {{InvoiceNumber}} {{InvoiceDate}} {{Reference}} {{DocumentType}}
+    Client   : {{ClientName}} {{ClientAddress}} {{ClientPhone}} {{ClientEmail}}
+    Body     : {{Details}}
+    Line row : {{LineDescription}} {{LineQuantity}} {{LineUnitPrice}} {{LineTotal}}
+    Totals   : {{Subtotal}} {{GST}} {{AmountPayable}}
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Invoice {{InvoiceNumber}}</title>
+<style>
+  /* ---- Brand palette (taken from the logo) ---- */
+  :root {
+    --ink:      #1c1c1c;          /* main text            */
+    --muted:    #5f5f5f;          /* secondary text       */
+    --brand:    {{BrandColor}};     /* brand accent (from Settings) */
+    --brand-dk: {{BrandDarkColor}}; /* darker brand         */
+    --line:     #d9d9d9;          /* hairline borders     */
+    --band:     #f4f4f4;          /* table header band    */
+  }
+
+  /* ---- Page geometry for clean A4 print-to-PDF ---- */
+  @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+    color: var(--ink);
+    font-size: 11pt;
+    line-height: 1.4;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .sheet { max-width: 182mm; margin: 0 auto; }
+
+  /* ---- Header: logo left, business identity right ---- */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 3px solid var(--brand);
+    padding-bottom: 10px;
+  }
+  .header .logo img { max-height: 92px; max-width: 230px; display: block; }
+  .biz { text-align: right; }
+  .biz .name { font-size: 16pt; font-weight: 700; color: var(--brand); letter-spacing: .2px; }
+  .biz .line { color: var(--muted); font-size: 10pt; }
+  .biz .gst  { margin-top: 4px; font-weight: 600; font-size: 10pt; }
+
+  /* ---- Parties row: Invoice to (left) / document meta (right) ---- */
+  .parties {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    margin-top: 16px;
+  }
+  .invoice-to { max-width: 95mm; }
+  .label { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 3px; }
+  .client-name { font-weight: 700; font-size: 12pt; }
+  .client-addr { white-space: pre-line; color: var(--ink); }
+  .client-contact { color: var(--muted); font-size: 10pt; margin-top: 2px; }
+
+  .doc { text-align: right; min-width: 78mm; }
+  .doc .doctype {
+    display: inline-block;
+    font-size: 15pt; font-weight: 800; letter-spacing: 1px;
+    color: #fff; background: var(--brand);
+    padding: 5px 14px; border-radius: 3px;
+  }
+  .meta { margin-top: 10px; width: 100%; border-collapse: collapse; }
+  .meta td { padding: 3px 8px; font-size: 10pt; }
+  .meta .k { color: var(--muted); text-align: right; text-transform: uppercase; font-size: 8.5pt; letter-spacing: .5px; }
+  .meta .v { text-align: right; font-weight: 600; min-width: 30mm; }
+  .meta .ref .v { color: var(--brand); }
+
+  /* ---- Not-registered-for-GST note (req 11d): white on brand, un-missable ---- */
+  .nogst-note {
+    margin-top: 16px; background: var(--brand); color: #fff;
+    padding: 10px 14px; border-radius: 4px; font-weight: 700; text-align: center;
+    font-size: 11pt;
+  }
+
+  /* ---- Work description ---- */
+  .details {
+    margin-top: 16px;
+    white-space: pre-line;
+    border-left: 3px solid var(--line);
+    padding: 2px 0 2px 12px;
+    color: var(--ink);
+  }
+  .details:empty { display: none; }
+
+  /* ---- Line items ---- */
+  table.items { width: 100%; border-collapse: collapse; margin-top: 16px; }
+  table.items thead th {
+    background: var(--band);
+    border-bottom: 2px solid var(--brand);
+    text-align: left;
+    padding: 7px 8px;
+    font-size: 9pt; text-transform: uppercase; letter-spacing: .5px; color: var(--ink);
+  }
+  table.items th.num, table.items td.num { text-align: right; white-space: nowrap; }
+  table.items tbody td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.items tbody tr:nth-child(even) td { background: #fafafa; }
+
+  /* ---- Totals ---- */
+  .totals { display: flex; justify-content: flex-end; margin-top: 14px; }
+  .totals table { border-collapse: collapse; min-width: 78mm; }
+  .totals td { padding: 5px 10px; font-size: 11pt; }
+  .totals td.k { text-align: right; color: var(--muted); }
+  .totals td.v { text-align: right; font-weight: 600; min-width: 32mm; }
+  .totals tr.grand td { border-top: 2px solid var(--brand); font-size: 13pt; }
+  .totals tr.grand td.k { color: var(--brand-dk); font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+  .totals tr.grand td.v { color: var(--brand-dk); font-weight: 800; }
+
+  .thanks { text-align: center; margin: 22px 0 6px; font-style: italic; color: var(--muted); }
+
+  /* ---- Payment / direct credit (replaces the old remittance block) ---- */
+  .pay {
+    margin-top: 10px;
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--brand);
+    border-radius: 4px;
+    padding: 12px 14px;
+    background: #fcfcfc;
+  }
+  .pay h3 { margin: 0 0 8px; font-size: 10.5pt; color: var(--brand-dk); text-transform: uppercase; letter-spacing: .5px; }
+  .pay table { border-collapse: collapse; }
+  .pay td { padding: 2px 10px 2px 0; font-size: 10.5pt; }
+  .pay td.k { color: var(--muted); white-space: nowrap; }
+  .pay td.v { font-weight: 600; }
+
+  .foot { margin-top: 14px; text-align: center; color: var(--muted); font-size: 8.5pt; }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ================= HEADER ================= -->
+  <div class="header">
+    <div class="logo"><img src="{{Logo}}" alt="{{BusinessName}}"></div>
+    <div class="biz">
+      <div class="name">{{BusinessName}}</div>
+      <div class="line">{{BusinessAddress}}</div>
+      <div class="line">Phone: {{BusinessPhone}}</div>
+      <div class="line">Email: {{BusinessEmail}}</div>
+      <!-- IF_TAXNO --><div class="gst">{{TaxNumberLabel}}: {{GSTNumber}}</div><!-- END_IF_TAXNO -->
+    </div>
+  </div>
+
+  <!-- ================= PARTIES ================= -->
+  <div class="parties">
+    <div class="invoice-to">
+      <div class="label">Invoice to</div>
+      <div class="client-name">{{ClientName}}</div>
+      <div class="client-addr">{{ClientAddress}}</div>
+      <div class="client-contact">{{ClientPhone}}</div>
+      <div class="client-contact">{{ClientEmail}}</div>
+    </div>
+    <div class="doc">
+      <span class="doctype">{{DocumentType}}</span>
+      <table class="meta">
+        <tr><td class="k">Invoice No</td><td class="v">{{InvoiceNumber}}</td></tr>
+        <tr><td class="k">Date</td><td class="v">{{InvoiceDate}}</td></tr>
+        <tr class="ref"><td class="k">Reference</td><td class="v">{{Reference}}</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ================= WORK DESCRIPTION ================= -->
+  <div class="details">{{Details}}</div>
+
+  <!-- ================= LINE ITEMS ================= -->
+  <table class="items">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="num">Qty</th>
+        <th class="num">Unit Price</th>
+        <th class="num">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- LINE_ITEM_ROW -->
+      <tr>
+        <td>{{LineDescription}}</td>
+        <td class="num">{{LineQuantity}}</td>
+        <td class="num">{{LineUnitPrice}}</td>
+        <td class="num">{{LineTotal}}</td>
+      </tr>
+      <!-- /LINE_ITEM_ROW -->
+    </tbody>
+  </table>
+
+  <!-- ================= TOTALS ================= -->
+  <div class="totals">
+    <table>
+      <!-- IF_GST -->
+      <tr><td class="k">Subtotal</td><td class="v">{{Subtotal}}</td></tr>
+      <tr><td class="k">{{GSTLine}}</td><td class="v">{{GST}}</td></tr>
+      <!-- END_IF_GST -->
+      <tr class="grand"><td class="k">Amount Payable</td><td class="v">{{AmountPayable}}</td></tr>
+    </table>
+  </div>
+
+  <!-- IF_NOT_GST -->
+  <div class="nogst-note">Please note: there is no GST charged on this invoice, as {{BusinessName}} is not registered for GST.</div>
+  <!-- END_IF_NOT_GST -->
+
+  <div class="thanks">Thank you for your business!</div>
+
+  <!-- ================= PAYMENT / DIRECT CREDIT ================= -->
+  <div class="pay">
+    <h3>Payment &mdash; direct credit to:</h3>
+    <table>
+      <tr><td class="k">Bank</td><td class="v">{{BankName}}</td></tr>
+      <tr><td class="k">Account name</td><td class="v">{{BankAccountName}}</td></tr>
+      <tr><td class="k">Account number</td><td class="v">{{BankAccountNumber}}</td></tr>
+      <tr><td class="k">Reference</td><td class="v">{{Reference}}</td></tr>
+    </table>
+  </div>
+
+  <div class="foot">{{BusinessName}}{{FooterTax}}</div>
+
+</div>
+</body>
+</html>

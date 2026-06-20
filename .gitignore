@@ -1,0 +1,33 @@
+# ===== Private / PII — must never be published =====
+# CLAUDE.md = requirements brief (contains GST # + bank account)
+CLAUDE.md
+# real client data + invoice PDFs
+Historical Import Source/
+# the original business logo
+templates/logo.jpg
+# rendered with real data
+templates/_preview_sample.html
+# old dev launcher (named for the original business)
+*.vbs
+
+# ===== Runtime data (created by the app) =====
+_runtime_test/
+_exe_test/
+_appdata/
+data/
+exports/
+Invoices/
+_backups/
+*.db
+
+# ===== Dev-only =====
+_dev_run.py
+.claude/
+
+# ===== Build outputs =====
+build/
+dist/
+*.pyc
+__pycache__/
+.venv/
+packaging/Output/

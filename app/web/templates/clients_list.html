@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% from "_macros.html" import sorthead, pager %}
+{% set active = 'clients' %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Clients</h1>
+  <a class="btn btn-primary" href="{{ url_for('clients.new') }}">+ Add client</a>
+</div>
+
+<form class="search" method="get" action="{{ url_for('clients.index') }}">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search name, phone, email or code"
+         autofocus autocomplete="off">
+  <input type="hidden" name="per_page" value="{{ per_page }}">
+</form>
+
+<div class="card">
+  {% if clients %}
+  <table class="table rows">
+    <thead><tr>
+      {{ sorthead('clients.index', 'name', 'Name', sort, dir, extra={'per_page': per_page, 'q': q}) }}
+      {{ sorthead('clients.index', 'phone', 'Phone', sort, dir, extra={'per_page': per_page, 'q': q}) }}
+      {{ sorthead('clients.index', 'email', 'Email', sort, dir, extra={'per_page': per_page, 'q': q}) }}
+    </tr></thead>
+    <tbody>
+      {% for c in clients %}
+      <tr onclick="window.location='{{ url_for('clients.edit', client_id=c.client_id) }}'">
+        <td>{{ c.name }}{% if c.customer_code %} <span class="code">{{ c.customer_code }}</span>{% endif %}</td>
+        <td>{{ c.phone or '' }}</td>
+        <td>{{ c.email or '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">{% if q %}No clients match &ldquo;{{ q }}&rdquo;.{% else %}No clients yet. Add your first one.{% endif %}</div>
+  {% endif %}
+
+  {{ pager('clients.index', page, pages, per_page, page_sizes, total, start, end, extra={'sort': sort, 'dir': dir, 'q': q}) }}
+</div>
+
+{% endblock %}

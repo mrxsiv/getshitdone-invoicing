@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% set active = 'invoices' %}
+{% block title %}{{ 'Edit invoice' if invoice else 'New invoice' }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1 id="formTitle">{{ ('Invoice ' ~ invoice.invoice_number) if invoice else 'New Invoice' }}</h1>
+  <a class="btn btn-quiet" href="{{ url_for('invoices.index') }}">&larr; Back to invoices</a>
+</div>
+
+<div id="bigInvoiceWarning" class="notice notice-warn" hidden>
+  This invoice is over $1,000. IRD prefers a physical address for the client.
+  <button type="button" class="link-dismiss" id="dismissWarning">Dismiss</button>
+</div>
+
+<div class="card">
+  <div class="two-col">
+    <label>Client
+      <div class="client-pick">
+        <input id="clientSearch" autocomplete="off" placeholder="Type to search clients" autofocus>
+        <div id="clientResults" class="picker-results" hidden></div>
+      </div>
+      <input type="hidden" id="clientId">
+      <div class="hint"><a href="{{ url_for('clients.new') }}" target="_blank">Add a new client</a> (opens in a new tab; reload here after)</div>
+    </label>
+    <label>Date
+      <input id="invoiceDate" value="{{ invoice.invoice_date if invoice else today }}">
+    </label>
+  </div>
+  <label>Reference
+    <input id="reference" placeholder="Numberplate or note (optional)"
+           value="{{ invoice.reference if invoice else '' }}">
+  </label>
+  <label>Details
+    <textarea id="details" rows="4" placeholder="Describe the work done">{{ invoice.details if invoice else '' }}</textarea>
+  </label>
+</div>
+
+<div class="card">
+  <table class="items-grid">
+    <thead>
+      <tr>
+        <th class="col-type">Type</th>
+        <th>Description</th>
+        <th class="num col-qty">Qty</th>
+        <th class="num col-price">Unit Price</th>
+        <th class="num col-total">Line Total</th>
+        <th class="col-del"></th>
+      </tr>
+    </thead>
+    <tbody id="itemsBody"></tbody>
+  </table>
+  <p class="hint grid-hint">Tip: press Tab after the unit price on the last row to start a new line.</p>
+
+  <div class="totals-block">
+    <div class="trow"><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+    <div class="trow"><span id="gstLabel">GST Content (15%)</span><span id="gst">$0.00</span></div>
+    <div class="trow grand"><span>Amount Payable</span><span id="amountPayable">$0.00</span></div>
+  </div>
+</div>
+
+<div class="action-bar">
+  <button class="btn btn-primary btn-big" id="btnSave"><span id="saveTick" class="save-tick" hidden>&#10003;</span> Save</button>
+  <button class="btn btn-big" id="btnSavePrint">Save &amp; Print</button>
+  <button class="btn btn-big" id="btnSaveEmail">Save &amp; Email</button>
+  <span id="saveStatus" class="save-status"></span>
+  <button class="btn btn-big btn-cash" id="btnStatus" type="button">Mark as Paid</button>
+  <button class="btn btn-big btn-danger" id="btnDelete" type="button" hidden>Delete Invoice</button>
+</div>
+
+<script type="application/json" id="invoiceData">
+{{ {
+  'clients': clients,
+  'invoice': invoice,
+  'lines': lines,
+  'gstRate': biz.get('gst_rate', '15'),
+  'businessName': biz.get('business_name', ''),
+  'ownerName': biz.get('owner_name', ''),
+  'today': today
+} | tojson }}
+</script>
+<script src="{{ url_for('static', filename='invoice.js') }}"></script>
+
+{% endblock %}

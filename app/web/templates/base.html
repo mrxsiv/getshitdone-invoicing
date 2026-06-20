@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ biz.get('theme', 'light') }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Invoicing{% endblock %} &middot; GET SHIT DONE</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+  <style id="palette">{{ palette_css|safe }}</style>
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="brand">{{ biz.get('business_name', 'GET SHIT DONE') }}</div>
+      <div class="brand-logo"><img src="{{ url_for('logo') }}?v={{ biz.get('logo_filename','') }}" alt="Logo" onerror="this.parentNode.style.display='none'"></div>
+      <a href="{{ url_for('dashboard.home') }}"   class="{{ 'active' if active=='dashboard' }}">Dashboard</a>
+      <a href="{{ url_for('clients.index') }}"    class="{{ 'active' if active=='clients' }}">Clients</a>
+      <a href="{{ url_for('invoices.index') }}"   class="{{ 'active' if active=='invoices' }}">Invoices</a>
+      <a href="{{ url_for('outstanding.index') }}" class="{{ 'active' if active=='outstanding' }}">Outstanding</a>
+      <a href="{{ url_for('settings.index') }}"   class="{{ 'active' if active=='settings' }}">Settings</a>
+      <div class="sidebar-footer">
+        <div class="gsd-logo"><img src="{{ url_for('static', filename='getshitdone.png') }}" alt="Get Shit Done"></div>
+        <div class="gsd-text">
+          <strong>GET SHIT DONE</strong>
+          An invoicing app for people who don&rsquo;t have time for bullshit
+          <span class="gsd-love">Love Paul xoxo</span>
+          <span class="gsd-version">{{ version_label }}</span>
+        </div>
+      </div>
+    </nav>
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

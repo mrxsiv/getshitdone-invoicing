@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% set active = 'dashboard' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Dashboard</h1>
+  <a class="btn btn-primary btn-big" href="{{ url_for('invoices.new') }}">+ New Invoice</a>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-num">{{ unpaid_count }}</div>
+    <div class="stat-label">Unpaid invoices</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num">{{ unpaid_total }}</div>
+    <div class="stat-label">Total outstanding</div>
+  </div>
+</div>
+
+{# ---- Period summary (req 5) ---- #}
+<div class="card">
+  <div class="summary-head">
+    <h2>Business summary</h2>
+    <div class="date-range">
+      <form method="get" action="{{ url_for('dashboard.home') }}" style="display:inline-flex;align-items:center;gap:6px;margin:0;">
+        <input type="hidden" name="year" value="{{ sel_year }}">
+        <label>Period
+          <select name="period" onchange="this.form.submit()">
+            {% for key, label in presets %}<option value="{{ key }}" {{ 'selected' if key == sel_preset }}>{{ label }}</option>{% endfor %}
+            {% if sel_preset == 'custom' %}<option value="custom" selected>Custom</option>{% endif %}
+          </select>
+        </label>
+      </form>
+      <form method="get" action="{{ url_for('dashboard.home') }}" style="display:inline-flex;align-items:center;gap:6px;margin:0;">
+        <input type="hidden" name="year" value="{{ sel_year }}">
+        <label>From <input type="date" name="from" value="{{ from_iso }}"></label>
+        <label>To <input type="date" name="to" value="{{ to_iso }}"></label>
+        <button class="btn" type="submit">Apply</button>
+      </form>
+    </div>
+  </div>
+  <div class="summary-figures">
+    <div class="figure"><div class="fig-num">{{ period.count }}</div><div class="fig-label">Invoices</div></div>
+    <div class="figure"><div class="fig-num">{{ period.labour }}</div><div class="fig-label">Labour</div></div>
+    <div class="figure"><div class="fig-num">{{ period.parts }}</div><div class="fig-label">Parts</div></div>
+    <div class="figure"><div class="fig-num">{{ period.other }}</div><div class="fig-label">Other</div></div>
+    {% if period.has_unitemised %}
+    <div class="figure"><div class="fig-num">{{ period.unitemised }}</div><div class="fig-label">Unitemised</div></div>
+    {% endif %}
+    <div class="figure figure-total"><div class="fig-num">{{ period.total_ex_gst }}</div><div class="fig-label">Total (ex GST)</div></div>
+  </div>
+  {% if period.has_unitemised %}
+  <p class="hint">Labour, Parts and Other come from itemised invoices. Older imported invoices (no line detail) appear under Unitemised.</p>
+  {% endif %}
+</div>
+
+{# ---- Trend chart (req 6) ---- #}
+<div class="card">
+  <div class="summary-head">
+    <h2>Trends &mdash; 13 months</h2>
+    <form class="date-range" method="get" action="{{ url_for('dashboard.home') }}">
+      {% if sel_preset == 'custom' %}
+        <input type="hidden" name="from" value="{{ from_iso }}">
+        <input type="hidden" name="to" value="{{ to_iso }}">
+      {% else %}
+        <input type="hidden" name="period" value="{{ sel_preset }}">
+      {% endif %}
+      <label>Year
+        <select name="year" onchange="this.form.submit()">
+          {% for y in years %}<option value="{{ y }}" {{ 'selected' if y == sel_year }}>{{ y }}</option>{% endfor %}
+        </select>
+      </label>
+    </form>
+  </div>
+  <div class="chart-legend">
+    <span class="lg lg-sales">Sales (ex GST)</span>
+    <span class="lg lg-labour">Labour (ex GST)</span>
+    <span class="lg lg-volume">Invoice volume</span>
+  </div>
+  <div id="trendChart" class="trend-chart"></div>
+  <script type="application/json" id="trendData">{{ series | tojson }}</script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+</div>
+
+{# ---- Needs attention (req 8: clickable) ---- #}
+{% if overdue %}
+<div class="card">
+  <h2>Needs attention <span class="pill pill-warn">{{ overdue|length }} overdue</span></h2>
+  <table class="table rows">
+    <thead><tr><th>Date</th><th>Client</th><th>Invoice</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for o in overdue %}
+      <tr class="overdue" onclick="window.location='{{ url_for('invoices.edit', number=o.invoice_number) }}'">
+        <td>{{ o.date }}</td>
+        <td>{{ o.client }}</td>
+        <td>{{ o.invoice_number }} <span class="tag tag-warn">Overdue</span></td>
+        <td class="num">{{ o.amount }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card empty">Nothing overdue. All caught up.</div>
+{% endif %}
+
+{% endblock %}

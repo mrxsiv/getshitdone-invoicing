@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% set active = 'settings' %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+
+<div class="page-head"><h1>Settings</h1></div>
+
+{% if saved %}<div class="notice notice-ok">Saved.</div>{% endif %}
+
+<form method="post" action="{{ url_for('settings.index') }}">
+  <div class="card narrow">
+    <h2>Business details</h2>
+    <p class="hint">These appear on every invoice and in the bank-details block.</p>
+    <label>Business name <input name="business_name" value="{{ biz.business_name }}"></label>
+    <label>Owner <input name="owner_name" value="{{ biz.owner_name }}"></label>
+    <label>Address <textarea name="business_address" rows="2">{{ biz.business_address }}</textarea></label>
+    <div class="two-col">
+      <label>Phone <input name="business_phone" value="{{ biz.business_phone }}"></label>
+      <label>Email <input name="business_email" value="{{ biz.business_email }}"></label>
+    </div>
+    <label>GST number <input name="gst_number" value="{{ biz.gst_number }}"></label>
+  </div>
+
+  <div class="card narrow">
+    <h2>Bank details</h2>
+    <label>Bank <input name="bank_name" value="{{ biz.bank_name }}"></label>
+    <label>Account name <input name="bank_account_name" value="{{ biz.bank_account_name }}"></label>
+    <label>Account number <input name="bank_account_number" value="{{ biz.bank_account_number }}"></label>
+  </div>
+
+  <div class="card narrow">
+    <h2>Preferences</h2>
+    <div class="two-col">
+      <label>Theme
+        <select name="theme">
+          <option value="light" {{ 'selected' if biz.theme == 'light' }}>Light</option>
+          <option value="dark"  {{ 'selected' if biz.theme == 'dark' }}>Dark</option>
+        </select>
+      </label>
+      <label>GST rate (%)
+        <input name="gst_rate" value="{{ biz.gst_rate }}">
+      </label>
+    </div>
+    <label>GST frequency
+      <select name="gst_frequency">
+        <option value="monthly"   {{ 'selected' if biz.gst_frequency == 'monthly' }}>Monthly</option>
+        <option value="2 months"  {{ 'selected' if biz.gst_frequency == '2 months' }}>2-monthly</option>
+        <option value="6 monthly" {{ 'selected' if biz.gst_frequency == '6 monthly' }}>6-monthly</option>
+      </select>
+      <span class="hint">Sets the &ldquo;This GST period&rdquo; range on the dashboard.</span>
+    </label>
+    <label>Starting invoice number
+      <input name="starting_invoice_number" value="{{ biz.starting_invoice_number }}">
+      <span class="hint">New invoices never go below this number.</span>
+    </label>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit">Save settings</button>
+    </div>
+  </div>
+</form>
+
+<div class="card narrow">
+  <h2>Advanced</h2>
+  <div class="update-row">
+    <button class="btn" id="btnCheckUpdates" type="button">Check for updates</button>
+    <span id="updateStatus" class="update-status">Current version {{ app_version }} ({{ publication_date }})</span>
+  </div>
+  <p class="hint" style="margin-top:14px;">Backups, data location, import and technical options live here.</p>
+  <a class="btn btn-quiet" href="{{ url_for('config.index') }}"
+     onclick="return confirm('Please don\'t go in here unless you spoke with Paul.');">Backend Config</a>
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById("btnCheckUpdates");
+  var status = document.getElementById("updateStatus");
+  var pending = null;
+
+  function render(info) {
+    pending = info;
+    status.className = "update-status";
+    if (info.status === "update") {
+      status.textContent = info.message + " Click to update.";
+      status.classList.add("upd-available");
+      btn.textContent = "Update now";
+    } else if (info.status === "current") {
+      status.textContent = info.message;
+      status.classList.add("upd-current");
+      btn.textContent = "Check for updates";
+    } else {
+      status.textContent = info.message || "";
+      btn.textContent = "Check for updates";
+    }
+  }
+
+  function check(then) {
+    status.textContent = "Checking…";
+    fetch("{{ url_for('settings.updates_check') }}")
+      .then(function (r) { return r.json(); })
+      .then(function (info) { render(info); if (then) then(info); })
+      .catch(function () { status.textContent = "Could not check for updates."; });
+  }
+
+  btn.addEventListener("click", function () {
+    if (pending && pending.status === "update") {
+      if (!confirm("Download and install " + pending.latest + " now?")) return;
+      status.textContent = "Downloading update…";
+      fetch("{{ url_for('settings.updates_apply') }}", { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { status.textContent = res.message || ""; });
+    } else {
+      check();
+    }
+  });
+
+  check();  // query once when the Settings page loads (not constantly)
+})();
+</script>
+
+{% endblock %}

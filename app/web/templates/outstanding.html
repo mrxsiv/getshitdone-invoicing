@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import sorthead, pager %}
+{% set active = 'outstanding' %}
+{% block title %}Outstanding{% endblock %}
+{% block content %}
+
+<div class="page-head"><h1>Outstanding</h1></div>
+
+<div class="card">
+  {% if invoices %}
+  <table class="table rows" id="outstandingTable">
+    <thead><tr>
+      {{ sorthead('outstanding.index', 'date', 'Invoice Date', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('outstanding.index', 'client', 'Debtor', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('outstanding.index', 'number', 'Invoice Number', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('outstanding.index', 'amount', 'Amount', sort, dir, 'num', extra={'per_page': per_page}) }}
+      <th class="col-paid">Paid</th>
+    </tr></thead>
+    <tbody>
+      {% for i in invoices %}
+      <tr data-number="{{ i.invoice_number }}" class="{{ 'overdue' if i.overdue }}"
+          onclick="window.location='{{ url_for('invoices.edit', number=i.invoice_number) }}'">
+        <td>{{ i.date }}</td>
+        <td>{{ i.client }}</td>
+        <td>{{ i.invoice_number }}</td>
+        <td class="num">{{ i.amount }}</td>
+        <td class="col-paid" onclick="event.stopPropagation();">
+          {% if i.overdue %}<span class="tag tag-warn">Overdue</span>{% endif %}
+          <input type="checkbox" class="paid-tick" autocomplete="off" title="Mark this invoice paid">
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">Nothing outstanding. Everything is paid.</div>
+  {% endif %}
+
+  {{ pager('outstanding.index', page, pages, per_page, page_sizes, total, start, end, extra={'sort': sort, 'dir': dir}) }}
+</div>
+
+<div id="toast" class="toast" hidden>
+  <span id="toastMsg"></span>
+  <button type="button" id="toastUndo" class="toast-undo">Undo</button>
+</div>
+
+<script src="{{ url_for('static', filename='outstanding.js') }}"></script>
+{% endblock %}

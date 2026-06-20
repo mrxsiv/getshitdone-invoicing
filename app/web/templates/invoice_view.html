@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set active = 'invoices' %}
+{% block title %}Invoice {{ inv.invoice_number }}{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Invoice {{ inv.invoice_number }}</h1>
+  <a class="btn btn-quiet" href="{{ url_for('invoices.index') }}">&larr; Back to invoices</a>
+</div>
+
+<div class="notice">This is a historical invoice imported from the old system. It is kept as-is (totals and the original PDF only).</div>
+
+<div class="card narrow">
+  <table class="table">
+    <tr><th>Client</th><td>{{ inv.client }}</td></tr>
+    <tr><th>Date</th><td>{{ inv.date }}</td></tr>
+    <tr><th>Reference</th><td>{{ inv.reference }}</td></tr>
+    <tr><th>Subtotal</th><td>{{ inv.subtotal }}</td></tr>
+    <tr><th>GST</th><td>{{ inv.gst }}</td></tr>
+    <tr><th>Amount payable</th><td>{{ inv.amount }}</td></tr>
+    <tr><th>Status</th><td><span class="tag {{ 'tag-paid' if inv.status == 'Paid' else 'tag-unpaid' }}">{{ inv.status }}</span></td></tr>
+  </table>
+  {% if inv.pdf_filename %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('invoices.pdf_file', number=inv.invoice_number) }}" target="_blank">Open original PDF</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

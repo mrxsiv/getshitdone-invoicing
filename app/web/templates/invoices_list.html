@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_macros.html" import sorthead, pager %}
+{% set active = 'invoices' %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+
+<div class="page-head">
+  <h1>Invoices</h1>
+  <a class="btn btn-primary" href="{{ url_for('invoices.new') }}">+ New Invoice</a>
+</div>
+
+<div class="card">
+  {% if invoices %}
+  <table class="table rows">
+    <thead><tr>
+      {{ sorthead('invoices.index', 'number', 'Invoice', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('invoices.index', 'date', 'Date', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('invoices.index', 'client', 'Client', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('invoices.index', 'reference', 'Reference', sort, dir, extra={'per_page': per_page}) }}
+      {{ sorthead('invoices.index', 'amount', 'Amount', sort, dir, 'num', extra={'per_page': per_page}) }}
+      {{ sorthead('invoices.index', 'status', 'Status', sort, dir, extra={'per_page': per_page}) }}
+    </tr></thead>
+    <tbody>
+      {% for i in invoices %}
+      <tr onclick="window.location='{{ url_for('invoices.edit', number=i.invoice_number) }}'">
+        <td>{{ i.invoice_number }}</td>
+        <td>{{ i.date }}</td>
+        <td>{{ i.client }}</td>
+        <td>{{ i.reference }}</td>
+        <td class="num">{{ i.amount }}</td>
+        <td>
+          <button type="button" class="tag status-toggle {{ 'tag-paid' if i.status == 'Paid' else 'tag-unpaid' }}"
+                  data-number="{{ i.invoice_number }}" title="Click to change paid status">{{ i.status }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No invoices yet. Create your first one.</div>
+  {% endif %}
+
+  {{ pager('invoices.index', page, pages, per_page, page_sizes, total, start, end, extra={'sort': sort, 'dir': dir}) }}
+</div>
+
+<script src="{{ url_for('static', filename='invoices_list.js') }}"></script>
+{% endblock %}

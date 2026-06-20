@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Coming next{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Almost there</h1>
+  <p class="lead">{{ what }} is being built next.</p>
+  <a class="btn" href="{{ url_for('dashboard.home') }}">Back to the dashboard</a>
+</div>
+{% endblock %}
