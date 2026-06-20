@@ -3,7 +3,7 @@
 ; (packaging\build.ps1 runs PyInstaller + bundles Chromium + this script.)
 
 #define AppName "GET SHIT DONE"
-#define AppVersion "1.00"
+#define AppVersion "1.01"
 #define AppPublisher "Paul Manson"
 #define AppExe "GETSHITDONE.exe"
 
