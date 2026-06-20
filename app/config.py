@@ -129,11 +129,25 @@ def ensure_structure() -> Path:
     for d in (data_dir(), templates_dir(), invoices_dir(), exports_dir(), backups_dir()):
         d.mkdir(parents=True, exist_ok=True)
 
+    _migrate_legacy_db()
+
     # Seed the editable template + logo from the bundled copies, but never
     # overwrite the user's own template once it exists (brief 3.3 / 8).
     _seed("invoice_template.html")
     _seed("logo.jpg")
     return root
+
+
+def _migrate_legacy_db() -> None:
+    """Early builds named the database 'hotrods.db'. If a data folder still has
+    that file and no gsd.db yet, adopt it so the data loads after an update."""
+    current = db_path()
+    legacy = data_dir() / "hotrods.db"
+    if legacy.exists() and not current.exists():
+        try:
+            legacy.rename(current)
+        except OSError:
+            pass
 
 
 def _seed(filename: str) -> None:
